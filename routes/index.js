@@ -1,10 +1,11 @@
 var express = require("express");
 var router = express.Router();
 var mongoose = require("mongoose");
+require("dotenv").config();
 
 //Set up default mongoose connection
 mongoose.set("strictQuery", true);
-var mongoDB = "mongodb://127.0.0.1/secretsDB";
+var mongoDB = process.env.mongoURL;
 mongoose.connect(mongoDB, { useNewUrlParser: true });
 //Get the default connection
 var db = mongoose.connection;
