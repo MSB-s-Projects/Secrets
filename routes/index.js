@@ -1,25 +1,29 @@
-var express = require("express");
-var router = express.Router();
-var mongoose = require("mongoose");
+const express = require("express");
+const router = express.Router();
+const mongoose = require("mongoose");
 require("dotenv").config();
+const encrypt = require("mongoose-encryption");
 
 //Set up default mongoose connection
 mongoose.set("strictQuery", true);
-var mongoDB = process.env.mongoURL;
+const mongoDB = process.env.mongoURL;
 mongoose.connect(mongoDB, { useNewUrlParser: true });
 //Get the default connection
-var db = mongoose.connection;
+const db = mongoose.connection;
 //Bind connection to error event (to get notification of connection errors)
 db.on("error", console.error.bind(console, "MongoDB connection error:"));
 db.on("error", console.error.bind(console, "MongoDB connection error:"));
 
 // Create model for saving users in database.
-var Schema = mongoose.Schema;
+const Schema = mongoose.Schema;
 
-var usersSchema = new Schema({
+const usersSchema = new Schema({
   email: String,
   password: String,
 });
+
+const secret = process.env.encryption_secret;
+usersSchema.plugin(encrypt, { secret: secret, encryptedFields: ["password"] });
 
 // Compile model from schema
 var User = mongoose.model("User", usersSchema);
@@ -68,7 +72,7 @@ router
   })
 
   .post((req, res) => {
-    newUser = new User({
+    const newUser = new User({
       email: req.body.username,
       password: req.body.password,
     });
