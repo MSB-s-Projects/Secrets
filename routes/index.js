@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
+const md5 = require("md5");
 require("dotenv").config();
-const encrypt = require("mongoose-encryption");
 
 //Set up default mongoose connection
 mongoose.set("strictQuery", true);
@@ -23,7 +23,6 @@ const usersSchema = new Schema({
 });
 
 const secret = process.env.encryption_secret;
-usersSchema.plugin(encrypt, { secret: secret, encryptedFields: ["password"] });
 
 // Compile model from schema
 var User = mongoose.model("User", usersSchema);
@@ -48,7 +47,7 @@ router
     User.findOne({ email: req.body.username }, (err, foundUser) => {
       if (!err) {
         if (foundUser !== null) {
-          if (foundUser.password === req.body.password) {
+          if (foundUser.password === md5(req.body.password)) {
             res.render("secrets");
           } else {
             res.redirect("/login");
@@ -74,7 +73,7 @@ router
   .post((req, res) => {
     const newUser = new User({
       email: req.body.username,
-      password: req.body.password,
+      password: md5(req.body.password),
     });
 
     newUser.save((err) => {
