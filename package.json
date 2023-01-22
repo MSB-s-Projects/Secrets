@@ -13,6 +13,7 @@
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
     "mongoose": "^6.8.4",
+    "mongoose-encryption": "^2.1.2",
     "morgan": "~1.9.1"
   }
 }
