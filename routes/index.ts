@@ -1,10 +1,12 @@
+require("dotenv").config();
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const session = require("express-session");
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
-require("dotenv").config();
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const findOrCreate = require("mongoose-findorcreate");
 
 router.use(
   session({
@@ -33,17 +35,43 @@ const Schema = mongoose.Schema;
 const usersSchema = new Schema({
   email: String,
   password: String,
+  googleId: String,
 });
 
 usersSchema.plugin(passportLocalMongoose);
+usersSchema.plugin(findOrCreate);
 
 // Compile model from schema
 var User = mongoose.model("User", usersSchema);
 
 passport.use(User.createStrategy());
 
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser((id, done) => {
+  User.findById(id, (err, user) => {
+    done(err, user);
+  });
+});
+
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.CLIENT_ID,
+      clientSecret: process.env.CLIENT_SECRET,
+      callbackURL: "http://localhost:3000/auth/google/secrets",
+      userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
+    },
+    function (accessToken, refreshToken, profile, cb) {
+      console.log(profile);
+      User.findOrCreate({ googleId: profile.id }, function (err, user) {
+        return cb(err, user);
+      });
+    }
+  )
+);
 
 // "/" router
 router
@@ -52,6 +80,20 @@ router
   .get(function (req, res, next) {
     res.render("home");
   });
+
+router
+  .route("/auth/google")
+  .get(passport.authenticate("google", { scope: ["profile"] }));
+
+router
+  .route("/auth/google/secrets")
+
+  .get(
+    passport.authenticate("google", { failureRedirect: "/login" }),
+    (req, res) => {
+      res.redirect("/secrets");
+    }
+  );
 
 // "login" route
 router
@@ -115,15 +157,18 @@ router
     }
   });
 
-router.get("/logout", (req, res) => {
-  req.logout((err) => {
-    if (err) {
-      console.log(err);
-      res.redirect("/secrets");
-    } else {
-      res.redirect("/");
-    }
+router
+  .route("/logout")
+
+  .get((req, res) => {
+    req.logout((err) => {
+      if (err) {
+        console.log(err);
+        res.redirect("/secrets");
+      } else {
+        res.redirect("/");
+      }
+    });
   });
-});
 
 module.exports = router;
