@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
-const md5 = require("md5");
+const bcrypt = require("bcrypt");
+const saltRounds = 15;
 require("dotenv").config();
 
 //Set up default mongoose connection
@@ -47,11 +48,17 @@ router
     User.findOne({ email: req.body.username }, (err, foundUser) => {
       if (!err) {
         if (foundUser !== null) {
-          if (foundUser.password === md5(req.body.password)) {
-            res.render("secrets");
-          } else {
-            res.redirect("/login");
-          }
+          bcrypt.compare(
+            req.body.password,
+            foundUser.password,
+            function (err, result) {
+              if (result === true) {
+                res.render("secrets");
+              } else {
+                res.redirect("/login");
+              }
+            }
+          );
         } else {
           res.redirect("/login");
         }
@@ -71,18 +78,20 @@ router
   })
 
   .post((req, res) => {
-    const newUser = new User({
-      email: req.body.username,
-      password: md5(req.body.password),
-    });
+    bcrypt.hash(req.body.password, saltRounds, (err, hash) => {
+      const newUser = new User({
+        email: req.body.username,
+        password: hash,
+      });
 
-    newUser.save((err) => {
-      if (!err) {
-        res.render("secrets");
-      } else {
-        console.log(err);
-        res.send(err);
-      }
+      newUser.save((err) => {
+        if (!err) {
+          res.render("secrets");
+        } else {
+          console.log(err);
+          res.send(err);
+        }
+      });
     });
   });
 
