@@ -62,7 +62,7 @@ passport.use(
       clientID: process.env.CLIENT_ID,
       clientSecret: process.env.CLIENT_SECRET,
       callbackURL:
-        "https://secrets-9uiq1u1f8-msb.vercel.app/auth/google/secrets",
+        "https://secrets-msb.vercel.app/auth/google/secrets",
       userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
     },
     function (accessToken, refreshToken, profile, cb) {
