@@ -1,13 +1,24 @@
+// import dotenv and configure it
 require("dotenv").config();
+// import express
 const express = require("express");
-const router = express.Router();
+// import mongoose
 const mongoose = require("mongoose");
+// import expess-session
 const session = require("express-session");
+// import passport
 const passport = require("passport");
+// import passport-local-mongoose
 const passportLocalMongoose = require("passport-local-mongoose");
+// import passport-google-oauth20 strategy
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
+// import mongoose.findOrCreate
 const findOrCreate = require("mongoose-findorcreate");
 
+// create express router
+const router = express.Router();
+
+// set up express-session
 router.use(
   session({
     secret: process.env.encryption_secret,
@@ -16,6 +27,7 @@ router.use(
   })
 );
 
+// initialize passport and passport session
 router.use(passport.initialize());
 router.use(passport.session());
 
@@ -32,20 +44,25 @@ db.on("error", console.error.bind(console, "MongoDB connection error:"));
 // Create model for saving users in database.
 const Schema = mongoose.Schema;
 
+// Create a schema for users
 const usersSchema = new Schema({
   email: String,
   password: String,
   googleId: String,
 });
 
+// Use passport-local-mongoose to hash and salt password
 usersSchema.plugin(passportLocalMongoose);
+// Use mongoose-findOrCreate to find or create user
 usersSchema.plugin(findOrCreate);
 
 // Compile model from schema
 var User = mongoose.model("User", usersSchema);
 
+// use static authenticate method of model in LocalStrategy
 passport.use(User.createStrategy());
 
+// use serializing and deserializing the user
 passport.serializeUser((user, done) => {
   done(null, user.id);
 });
@@ -56,6 +73,7 @@ passport.deserializeUser((id, done) => {
   });
 });
 
+// use passport-google-oauth20 strategy
 passport.use(
   new GoogleStrategy(
     {
@@ -81,10 +99,12 @@ router
     res.render("home");
   });
 
+// "/auth/google" route for google authentication with passport
 router
   .route("/auth/google")
   .get(passport.authenticate("google", { scope: ["profile"] }));
 
+// "/auth/google/secrets" route for google authentication with passport
 router
   .route("/auth/google/secrets")
 
@@ -146,6 +166,8 @@ router
     );
   });
 
+
+// "/secrets" route
 router
   .route("/secrets")
 
@@ -157,6 +179,8 @@ router
     }
   });
 
+
+// "/logout" route
 router
   .route("/logout")
 
@@ -171,4 +195,5 @@ router
     });
   });
 
+// export router
 module.exports = router;
