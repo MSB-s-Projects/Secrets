@@ -87,7 +87,6 @@ passport.use(
     },
     function (accessToken, refreshToken, profile, cb) {
       User.findOrCreate({ googleId: profile.id }, function (err, user) {
-        console.log(profile);
         return cb(err, user);
       });
     }
@@ -249,8 +248,6 @@ router
 
   .post((req, res) => {
     const submittedSecret = req.body.secret;
-    console.log(req.user.id);
-
     User.findById(req.user.id, (err, foundUser) => {
       if (err) {
         console.log(err);
