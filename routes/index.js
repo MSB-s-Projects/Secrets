@@ -14,6 +14,7 @@ const passportLocalMongoose = require("passport-local-mongoose");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 // import mongoose.findOrCreate
 const findOrCreate = require("mongoose-findorcreate");
+// import passport-github2 strategy
 const GitHubStrategy = require("passport-github2").Strategy;
 
 // create express router
@@ -51,6 +52,7 @@ const usersSchema = new Schema({
   password: String,
   googleId: String,
   githubId: String,
+  secret: String,
 });
 
 // Use passport-local-mongoose to hash and salt password
@@ -68,7 +70,6 @@ passport.use(User.createStrategy());
 passport.serializeUser((user, done) => {
   done(null, user.id);
 });
-
 passport.deserializeUser((id, done) => {
   User.findById(id, (err, user) => {
     done(err, user);
@@ -93,17 +94,20 @@ passport.use(
   )
 );
 
-passport.use(new GitHubStrategy({
-  clientID: process.env.GITHUB_CLIENT_ID,
-  clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  callbackURL: "http://localhost:3000/auth/github/secrets"
-},
-function(accessToken, refreshToken, profile, done) {
-  User.findOrCreate({ githubId: profile.id }, function (err, user) {
-    return done(err, user);
-  });
-}
-));
+passport.use(
+  new GitHubStrategy(
+    {
+      clientID: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      callbackURL: process.env.github_callbackURL,
+    },
+    function (accessToken, refreshToken, profile, done) {
+      User.findOrCreate({ githubId: profile.id }, function (err, user) {
+        return done(err, user);
+      });
+    }
+  )
+);
 
 // "/" router
 router
@@ -116,9 +120,10 @@ router
 // "/auth/google" route for google authentication with passport
 router
   .route("/auth/google")
+
   .get(passport.authenticate("google", { scope: ["profile"] }));
 
-// "/auth/google/secrets" route for google authentication with passport
+// "/auth/google/secrets" route for google authentication callback with passport
 router
   .route("/auth/google/secrets")
 
@@ -129,16 +134,24 @@ router
     }
   );
 
-router.get('/auth/github',
-  passport.authenticate('github', { scope: [ 'user:email' ] }));
+// "auth/github" route for github authentication with passport
+router
+  .route("/auth/github")
 
-router.get('/auth/github/secrets',
-  passport.authenticate('github', { failureRedirect: '/login' }),
-  function(req, res) {
-    // Successful authentication, redirect home.
-    res.redirect('/secrets');
-    // res.render("secrets");
-  });
+  .get(passport.authenticate("github", { scope: ["user:email"] }));
+
+// "auth/github/secrets" route for github authentication callback with passport
+router
+  .route("/auth/github/secrets")
+
+  .get(
+    passport.authenticate("github", { failureRedirect: "/login" }),
+    function (req, res) {
+      // Successful authentication, redirect home.
+      res.redirect("/secrets");
+      // res.render("secrets");
+    }
+  );
 
 // "login" route
 router
@@ -191,19 +204,21 @@ router
     );
   });
 
-
 // "/secrets" route
 router
   .route("/secrets")
 
   .get((req, res) => {
-    if (req.isAuthenticated()) {
-      res.render("secrets");
-    } else {
-      res.redirect("login");
-    }
+    User.find({ secret: { $ne: null } }, (err, foundUsers) => {
+      if (err) {
+        console.log(err);
+      } else {
+        if (foundUsers) {
+          res.render("secrets", { usersWithSecrets: foundUsers });
+        }
+      }
+    });
   });
-
 
 // "/logout" route
 router
@@ -216,6 +231,36 @@ router
         res.redirect("/secrets");
       } else {
         res.redirect("/");
+      }
+    });
+  });
+
+// "/submit" route
+router
+  .route("/submit")
+
+  .get((req, res) => {
+    if (req.isAuthenticated()) {
+      res.render("submit");
+    } else {
+      res.redirect("/login");
+    }
+  })
+
+  .post((req, res) => {
+    const submittedSecret = req.body.secret;
+    console.log(req.user.id);
+
+    User.findById(req.user.id, (err, foundUser) => {
+      if (err) {
+        console.log(err);
+      } else {
+        if (foundUser) {
+          foundUser.secret = submittedSecret;
+          foundUser.save(() => {
+            res.redirect("/secrets");
+          });
+        }
       }
     });
   });
