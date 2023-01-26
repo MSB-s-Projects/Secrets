@@ -1,7 +1,7 @@
 {
   "name": "secrets",
   "version": "0.0.0",
-  "private": true,
+  "private": false,
   "scripts": {
     "start": "SET DEBUG=secrets:* & nodemon ./bin/www.js"
   },
@@ -22,5 +22,16 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-local": "^1.0.0",
     "passport-local-mongoose": "^7.1.2"
+  },
+  "main": "./bin/www.js",
+  "repository": "https://github.com/MSB-s-Projects/Secrets.git",
+  "author": "MSB",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.0.1",
+    "eslint-config-standard": "^17.0.0",
+    "eslint-plugin-import": "^2.25.2",
+    "eslint-plugin-n": "^15.0.0",
+    "eslint-plugin-promise": "^6.0.0"
   }
 }
